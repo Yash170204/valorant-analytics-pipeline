@@ -1,0 +1,15 @@
+# Valorant Analytics Pipeline — Dependencies
+
+# Web framework
+fastapi==0.115.8
+uvicorn[standard]==0.34.0
+
+# Database
+psycopg2-binary==2.9.10
+asyncpg==0.30.0
+
+# Environment
+python-dotenv==1.0.1
+
+# ETL (used by transform_and_load.py)
+# psycopg2-binary is shared with the API
