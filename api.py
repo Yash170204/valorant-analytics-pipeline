@@ -14,16 +14,16 @@ Endpoints:
 Usage:
     uvicorn api:app --reload --port 8000
 
-Environment Variables:
-    DB_HOST     (default: localhost)
-    DB_PORT     (default: 5432)
-    DB_NAME     (default: valorant_analytics)
-    DB_USER     (default: postgres)
-    DB_PASSWORD (default: "")
+Environment Variables (loaded from .env via python-dotenv):
+    DB_HOST     — PostgreSQL host      (required)
+    DB_PORT     — PostgreSQL port      (default: 5432)
+    DB_NAME     — Database name        (required)
+    DB_USER     — Database user        (required)
+    DB_PASSWORD — Database password    (required)
 """
 
 import os
-import json
+import sys
 from contextlib import asynccontextmanager
 from typing import Optional
 
@@ -31,20 +31,49 @@ import asyncpg
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 
 # ---------------------------------------------------------------------------
-# Configuration
+# Configuration — load .env and validate
 # ---------------------------------------------------------------------------
 
 load_dotenv()
 
+REQUIRED_ENV_VARS = ["DB_HOST", "DB_NAME", "DB_USER", "DB_PASSWORD"]
+
+
+def _validate_env():
+    """
+    Validate that all required database environment variables are set.
+
+    Raises a clear, readable error listing every missing variable so
+    the developer knows exactly what to add to their .env file.
+    """
+    missing = [var for var in REQUIRED_ENV_VARS if not os.getenv(var)]
+    if missing:
+        print("\n" + "=" * 60)
+        print("  ❌ MISSING ENVIRONMENT VARIABLES")
+        print("=" * 60)
+        for var in missing:
+            print(f"  • {var}")
+        print()
+        print("  Create a .env file in the project root with:")
+        print()
+        print('    DB_HOST=your_database_host')
+        print('    DB_NAME=your_database_name')
+        print('    DB_USER=your_database_user')
+        print('    DB_PASSWORD=your_database_password')
+        print("=" * 60 + "\n")
+        sys.exit(1)
+
+
+_validate_env()
+
 DB_CONFIG = {
-    "host":     os.getenv("DB_HOST", "localhost"),
+    "host":     os.getenv("DB_HOST"),
     "port":     int(os.getenv("DB_PORT", "5432")),
-    "database": os.getenv("DB_NAME", "valorant_analytics"),
-    "user":     os.getenv("DB_USER", "postgres"),
-    "password": os.getenv("DB_PASSWORD", ""),
+    "database": os.getenv("DB_NAME"),
+    "user":     os.getenv("DB_USER"),
+    "password": os.getenv("DB_PASSWORD"),
 }
 
 # ---------------------------------------------------------------------------
@@ -96,12 +125,12 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Allow frontend origins (adjust for production)
+# Allow frontend origins (restrict in production to specific domains)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["GET"],
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 

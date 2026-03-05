@@ -31,6 +31,11 @@ import argparse
 from datetime import datetime, timezone
 from typing import Any
 
+from dotenv import load_dotenv
+
+# Load .env file for database credentials
+load_dotenv()
+
 # ---------------------------------------------------------------------------
 # EXTRACT — Load raw JSON
 # ---------------------------------------------------------------------------
@@ -201,8 +206,36 @@ def transform_all(raw_data: list[dict]) -> tuple[list, list, list]:
 # LOAD — Insert into PostgreSQL
 # ---------------------------------------------------------------------------
 
+def _validate_env():
+    """
+    Validate that required database environment variables are set.
+
+    Raises a clear, readable error listing every missing variable so
+    the developer knows exactly what to add to their .env file.
+    """
+    required = ["DB_HOST", "DB_NAME", "DB_USER", "DB_PASSWORD"]
+    missing = [var for var in required if not os.getenv(var)]
+    if missing:
+        print("\n" + "=" * 60)
+        print("  ❌ MISSING ENVIRONMENT VARIABLES")
+        print("=" * 60)
+        for var in missing:
+            print(f"  • {var}")
+        print()
+        print("  Create a .env file in the project root with:")
+        print()
+        print('    DB_HOST=your_database_host')
+        print('    DB_NAME=your_database_name')
+        print('    DB_USER=your_database_user')
+        print('    DB_PASSWORD=your_database_password')
+        print("=" * 60 + "\n")
+        sys.exit(1)
+
+
 def _get_db_connection():
-    """Create a PostgreSQL connection from environment variables."""
+    """Create a PostgreSQL connection from environment variables (.env)."""
+    _validate_env()
+
     try:
         import psycopg2
     except ImportError:
@@ -211,11 +244,11 @@ def _get_db_connection():
         sys.exit(1)
 
     conn = psycopg2.connect(
-        host=os.getenv("DB_HOST", "localhost"),
+        host=os.getenv("DB_HOST"),
         port=int(os.getenv("DB_PORT", "5432")),
-        dbname=os.getenv("DB_NAME", "valorant_analytics"),
-        user=os.getenv("DB_USER", "postgres"),
-        password=os.getenv("DB_PASSWORD", ""),
+        dbname=os.getenv("DB_NAME"),
+        user=os.getenv("DB_USER"),
+        password=os.getenv("DB_PASSWORD"),
     )
     return conn
 
